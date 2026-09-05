@@ -1,0 +1,3 @@
+{"role":"user","message":{"content":[{"type":"text","text":"Fix the failing parser test. api_key=fixture-secret-must-not-render"}]},"timestamp":"2026-09-05T08:00:00.000Z"}
+{"role":"assistant","message":{"content":[{"type":"text","text":"I will inspect the parser and its test."},{"type":"tool_use","name":"ReadFile","input":{"path":"src/parser.ts"}}]},"timestamp":"2026-09-05T08:00:01.000Z"}
+{"role":"assistant","message":{"content":[{"type":"text","text":"The parser accepts an empty record. I will add a guard."}]},"timestamp":"2026-09-05T08:00:02.000Z"}

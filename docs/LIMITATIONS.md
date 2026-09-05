@@ -25,8 +25,12 @@ Last updated: 5 September 2026
 
 - The generic adapter handles JSON arrays, common message containers, JSONL,
   and simple content-block arrays.
-- Cursor, Claude Code, and Codex internal trace formats evolve and are not yet
-  covered by versioned conformance fixtures.
+- Cursor, Claude Code, and Codex formats are covered by `*-jsonl-v1` fixtures,
+  but remain private evolving formats rather than vendor-supported APIs.
+- Current Cursor transcript exports can expose tool calls without their result
+  payloads. ContextProof warns when this happens and does not read unscoped
+  workspace cache files; tool-output accounting is therefore incomplete for
+  those sessions.
 - Inputs are loaded into memory and limited to 25 MiB.
 
 ## Intervention

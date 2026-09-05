@@ -3,6 +3,18 @@
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import {
+  discoverLocalSessions,
+  loadLocalSession,
+  selectLocalSession,
+  type LoadedLocalSession,
+  type SupportedAgent,
+} from "../lib/contextproof/session-adapters";
+import {
+  openLocalReport,
+  writeLocalReport,
+} from "../lib/contextproof/local-report";
+import type { TraceEvent } from "../lib/contextproof/types";
+import {
   applyStaleToolOutputPolicy,
   detectAgent,
   inspectContext,
@@ -21,6 +33,10 @@ function argValue(name: string): string | undefined {
 
 function modelId(): string {
   return argValue("--model") ?? "gpt-4.1";
+}
+
+function isSupportedAgent(value: string | undefined): value is SupportedAgent {
+  return value === "cursor" || value === "claude-code" || value === "codex";
 }
 
 async function readTrace(path: string) {
@@ -189,7 +205,11 @@ function usage() {
 
 Usage:
   contextproof inspect <trace.json|trace.jsonl> [--model MODEL] [--json]
+  contextproof inspect cursor|claude-code|codex --latest [--no-open]
+  contextproof inspect cursor|claude-code|codex --list
+  contextproof inspect cursor|claude-code|codex <session-id> [--no-open]
   contextproof recommend <trace.json|trace.jsonl> [--model MODEL] [--json]
+  contextproof recommend cursor|claude-code|codex --latest
   contextproof intervene <trace.json|trace.jsonl> [--model MODEL] [--json]
   contextproof benchmark [--model MODEL] [--json]
   contextproof mcp
@@ -209,17 +229,109 @@ async function main() {
     return;
   }
 
-  const path = process.argv[3];
-  if (!path) throw new Error(`${command} requires a trace file path.`);
-  const { raw, events } = await readTrace(path);
+  const target = process.argv[3];
+  if (!target) throw new Error(`${command} requires a trace file or agent name.`);
+  let raw: unknown;
+  let events: TraceEvent[];
+  let loaded: LoadedLocalSession | undefined;
+
+  if (isSupportedAgent(target)) {
+    if (process.argv.includes("--list")) {
+      const sessions = await discoverLocalSessions(target);
+      if (asJson) console.log(JSON.stringify(sessions, null, 2));
+      else if (sessions.length === 0) {
+        console.log(`No ${target} sessions found for ${process.cwd()}.`);
+      } else {
+        console.log(`${target} sessions for ${process.cwd()}`);
+        for (const session of sessions) {
+          console.log(
+            `- ${session.id} · ${new Date(session.modifiedAt).toLocaleString()} · ${session.bytes.toLocaleString()} bytes${session.workspaceMatch ? "" : " · workspace unverified"}`
+          );
+        }
+      }
+      return;
+    }
+    const positionalSelector =
+      process.argv[4] && !process.argv[4].startsWith("--")
+        ? process.argv[4]
+        : undefined;
+    const selector =
+      argValue("--session") ??
+      positionalSelector ??
+      (process.argv.includes("--latest") ? "latest" : "latest");
+    const session = await selectLocalSession(target, selector);
+    loaded = await loadLocalSession(session);
+    raw = { agent: target, sessionId: session.id };
+    events = loaded.events;
+  } else {
+    ({ raw, events } = await readTrace(target));
+  }
   const inspection = inspectContext(events, {
     modelId: modelId(),
-    agent: detectAgent(raw),
+    agent: loaded?.session.agent ?? detectAgent(raw),
   });
+  if (
+    loaded?.session.agent === "cursor" &&
+    events.some((event) => event.name?.startsWith("tool_call:")) &&
+    !events.some((event) => event.role === "tool")
+  ) {
+    inspection.warnings.push(
+      "This Cursor transcript exposes tool calls but not tool-result payloads. " +
+        "Tool-output totals are incomplete; no unscoped cache files were read."
+    );
+  }
 
   if (command === "inspect") {
-    if (asJson) console.log(JSON.stringify(inspection, null, 2));
-    else printInspection(inspection);
+    if (asJson) {
+      console.log(
+        JSON.stringify(
+          loaded
+            ? {
+                source: {
+                  session: loaded.session,
+                  formatVersion: loaded.formatVersion,
+                  skippedRecords: loaded.skippedRecords,
+                },
+                inspection,
+              }
+            : inspection,
+          null,
+          2
+        )
+      );
+    } else {
+      if (loaded) {
+        console.log(
+          `Selected ${loaded.session.agent} session: ${loaded.session.id}`
+        );
+        console.log(`Source: ${loaded.session.path}`);
+        console.log(
+          `Format: ${loaded.formatVersion}; source remains read-only`
+        );
+      }
+      printInspection(inspection);
+      if (loaded) {
+        const recommendations = recommendPolicies(inspection, events);
+        const reportPath = await writeLocalReport(
+          loaded,
+          inspection,
+          recommendations
+        );
+        console.log(`\nLocal report: ${reportPath}`);
+        if (!process.argv.includes("--no-open")) {
+          try {
+            await openLocalReport(reportPath);
+            console.log("Opened the local report.");
+          } catch (error) {
+            console.log(
+              `Could not open the report automatically: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+        }
+      }
+    }
     return;
   }
   if (command === "recommend") {

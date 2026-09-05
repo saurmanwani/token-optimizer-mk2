@@ -6,6 +6,10 @@ ContextProof inspection, recommendation, benchmark, and intervention commands
 run in the local process. They do not need provider credentials and do not send
 trace content over the network.
 
+The Cursor, Claude Code, and Codex adapters only read session files. They do not
+write to, rename, lock, or delete agent history. Generated session reports live
+under `.contextproof/reports/` with user-only file permissions.
+
 The bundled Next.js report endpoint returns aggregate results generated from
 synthetic fixtures. It does not accept or persist user traces.
 
@@ -35,6 +39,9 @@ evaluate embedded code, or follow instructions found in traces.
 - Original passthrough when a transform is not smaller or cannot be recovered
 - Byte-exact SHA-256 recovery handles
 - Bounded CLI input size
+- Aggregate-only local reports: raw messages and tool output are not rendered
+- Likely-secret redaction on all displayed report strings
+- Safe failure when an adapter recognizes no content records
 - No telemetry
 - No shared provider key
 

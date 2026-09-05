@@ -16,6 +16,10 @@ answers.
 
 ## What ships
 
+- `contextproof inspect cursor --latest` — inspect the latest Cursor session for
+  the current workspace and open a local report
+- `contextproof inspect claude-code --latest` and `contextproof inspect codex
+  --latest` — equivalent local adapters
 - `contextproof inspect <trace.json|trace.jsonl>` — context bill of materials
 - `contextproof recommend <trace>` — advisory preserve/cache/clear/retrieve policy
 - `contextproof benchmark` — deterministic baseline-versus-policy benchmark
@@ -29,12 +33,25 @@ answers.
 ```bash
 npm install
 npm run contextproof -- benchmark
+npm run contextproof -- inspect cursor --latest
 npm run contextproof -- inspect examples/sample-trace.json --model gpt-4.1
 npm run dev
 ```
 
 The CLI prints human-readable output by default. Add `--json` for machine-readable
-output.
+output. Agent adapters support `--list`, `--latest`, and an explicit session ID:
+
+```bash
+npm run contextproof -- inspect cursor --list
+npm run contextproof -- inspect cursor 6c5bae5b-72f1-4744-8e01-e4b70fc2d86d
+npm run contextproof -- inspect claude-code --latest
+npm run contextproof -- inspect codex --latest
+```
+
+Agent inspection writes a private aggregate-only HTML report under
+`.contextproof/reports/` and opens it by default. Use `--no-open` to only write
+the report. Discovery is scoped to the current workspace and requires no
+configuration.
 
 ## Input format
 
@@ -56,7 +73,9 @@ or JSONL. A normalized event looks like:
 Inspection, recommendations, deterministic benchmarks, and interventions run
 locally. ContextProof does not require an API key or send trace content to a
 hosted service. The optional report UI computes aggregate synthetic benchmark
-results locally on the Next.js server process.
+results locally on the Next.js server process. Session reports do not render raw
+messages or tool output, apply likely-secret redaction to displayed strings, and
+never change the original agent session.
 
 ## Evidence policy
 

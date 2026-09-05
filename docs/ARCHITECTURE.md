@@ -3,7 +3,10 @@
 ## Data flow
 
 ```text
-trace JSON/JSONL
+Cursor / Claude Code / Codex local history
+  -> read-only workspace-scoped discovery and session selection
+  -> versioned agent adapter
+trace JSON/JSONL -------------------------------+
   -> normalize inert records
   -> classify context sources
   -> model-aware accounting
@@ -17,6 +20,10 @@ trace JSON/JSONL
 
 - `src/lib/contextproof/normalize.ts` parses common trace shapes without
   executing embedded content.
+- `src/lib/contextproof/session-adapters.ts` discovers workspace-scoped local
+  histories and converts versioned Cursor, Claude Code, and Codex JSONL records.
+- `src/lib/contextproof/local-report.ts` creates private aggregate-only HTML
+  reports and redacts likely secrets from any displayed strings.
 - `src/lib/contextproof/inspect.ts` produces the context bill of materials.
 - `src/lib/contextproof/models.ts` owns model/counting/cost disclosure.
 - `src/lib/contextproof/recommend.ts` produces non-mutating policies.
@@ -36,4 +43,8 @@ They are intentionally outside the ContextProof production path.
 - Removed bytes are SHA-256-addressed and integrity-checked on retrieval.
 - The web endpoint does not accept user traces.
 - The CLI enforces a 25 MiB input limit.
+- Session discovery and parsing use read-only filesystem operations.
+- Format drift with no recognized records stops with an actionable error.
+- Local reports are mode `0600`, contain no raw event content, and are ignored
+  by git.
 - No provider key or network call is required.
