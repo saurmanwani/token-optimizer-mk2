@@ -1,0 +1,39 @@
+{
+  "agent": "cursor",
+  "events": [
+    {
+      "id": "system-1",
+      "role": "system",
+      "content": "You are a coding agent. Preserve file paths, commands, errors, and security checks exactly."
+    },
+    {
+      "id": "user-1",
+      "role": "user",
+      "content": "Find the cause of the payment worker timeout."
+    },
+    {
+      "id": "tool-1",
+      "role": "tool",
+      "name": "shell",
+      "content": "INFO worker started\nINFO polling queue\nINFO polling queue\nINFO polling queue\nFATAL E5042: payment database timeout at /workspace/src/payment-worker.ts:118\nINFO shutdown requested\nINFO cleanup complete\nINFO worker stopped\nINFO trace archived\nINFO process exited"
+    },
+    {
+      "id": "tool-2",
+      "role": "tool",
+      "name": "shell",
+      "content": "INFO dependency scan started\nINFO package a ok\nINFO package b ok\nINFO package c ok\nINFO package d ok\nINFO package e ok\nINFO package f ok\nINFO dependency scan complete"
+    },
+    {
+      "id": "tool-3",
+      "role": "tool",
+      "name": "shell",
+      "content": "INFO tests started\nPASS unit/payment-worker.test.ts\nPASS unit/queue.test.ts\nPASS unit/retry.test.ts\nINFO tests complete"
+    },
+    {
+      "id": "tool-4",
+      "role": "tool",
+      "name": "shell",
+      "content": "INFO recent health check\nSTATUS degraded\nDATABASE latency 3200ms\nQUEUE depth 19"
+    }
+  ]
+}

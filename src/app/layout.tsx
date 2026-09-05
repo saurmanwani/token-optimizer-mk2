@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Token Optimizer - Prompt Engineering Tool",
+  title: "ContextProof — Agent Context Observability",
   description:
-    "Optimize your LLM prompts: save tokens (quantitative) and improve output quality (qualitative).",
+    "Measure coding-agent context waste and verify policies before enabling them.",
 };
 
 export default function RootLayout({
